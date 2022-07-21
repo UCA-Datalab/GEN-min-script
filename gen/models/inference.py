@@ -5,7 +5,8 @@ import pandas as pd
 from gen.models.classification_BertNet import BertNet
 from gen.models.segmentation_LSTM import Segmentator
 from typing import Iterable
-
+import json
+from typing import List
 
 def process_text(text, tokenizer):
     text_tokenized = tokenizer(
@@ -22,26 +23,19 @@ def process_text(text, tokenizer):
 def inference(
     images: Iterable,
     texts: Iterable[str],
-    dataset_path: str = "data/datasets/annotation_results_merged.csv",
     batch_size: int = 32,
     cuda: bool = False,
-    encoder_path: str = "models/BertNet_Rotation_fixed.pt",
-    segmentator_model_path: str = "models/LSTM_Rotation_fixed.pt",
-    labels: str = None,
-):
+    encoder_path: str = "models/BertNet_group_classes.pt",
+    segmentator_model_path: str = "models/LSTM_group_classes.pt",
+) -> List[int]:
     device = (
         torch.device("cuda")
         if cuda and torch.cuda.is_available()
         else torch.device("cpu")
     )
 
-    dataset_df = pd.read_csv(dataset_path)
-
-    if labels is None:
-        labels = dataset_df["BIO_class_name"].unique().tolist()
-        labels_targets = dataset_df["BIO_target"].unique().tolist()
-        # Sort labels to be able to index them in validation
-        labels = sorted(labels, key=lambda x: labels_targets[labels.index(x)])
+    with open("labels.json","r") as f:
+        labels = json.load(f)
 
     image_transforms = transforms.Compose(
         [
@@ -55,11 +49,9 @@ def inference(
     images = [image_transforms(image) for image in images]
 
     tokenizer = BertTokenizer.from_pretrained("dccuchile/bert-base-spanish-wwm-cased")
-    texts = [process_text(text, tokenizer) for text in texts]
 
     # ===== CREATE DATASETS AND DATALOADERS =====
     encoder = BertNet(len(labels)).to(device)
-
     encoder.load_state_dict(torch.load(encoder_path))
     encoder.eval()
 
@@ -91,10 +83,6 @@ def inference(
             .cpu()
         )
 
-    outputs = torch.nn.functional.softmax(outputs, 1)
-
-    print(outputs)
-
-    results_df = pd.DataFrame(df_dicts)
-
-    return results_df
+    outputs = torch.argmax(outputs, 1)
+    results_labeled = [labels[r] for r in outputs]
+    return results_labeled
