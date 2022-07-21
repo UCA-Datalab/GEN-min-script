@@ -1,7 +1,6 @@
 import warnings
 import torch
 import torch.nn as nn
-from gen.config import BERT_MODEL
 from torchvision import models
 from transformers import BertForSequenceClassification
 
@@ -11,7 +10,9 @@ warnings.filterwarnings("ignore")
 class Bert(nn.Module):
     def __init__(self, output_features):
         super(Bert, self).__init__()
-        self.model = BertForSequenceClassification.from_pretrained(BERT_MODEL)
+        self.model = BertForSequenceClassification.from_pretrained(
+            "dccuchile/bert-base-spanish-wwm-cased"
+        )
         self.model.classifier = nn.Linear(
             self.model.classifier.in_features, output_features
         )

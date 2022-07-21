@@ -2,7 +2,6 @@ import numpy as np
 import easyocr
 import re
 from transformers import BertTokenizer
-from gen.config import BERT_MODEL
 from pdf2image import convert_from_bytes
 
 
@@ -51,11 +50,10 @@ def process_pdf(pdf_bytes):
     images = get_images(pdf_bytes)
 
     ocr_reader = easyocr.Reader(["es"])
-    tokenizer = BertTokenizer.from_pretrained(BERT_MODEL)
+    tokenizer = BertTokenizer.from_pretrained("dccuchile/bert-base-spanish-wwm-cased")
 
     texts = []
     for image in images:
         texts.append(ocr_with_rotation(ocr_reader, image, tokenizer))
 
     return images, texts
-

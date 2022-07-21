@@ -1,4 +1,3 @@
-from gen.data.pytorch_datasets import process_text
 from transformers import BertTokenizer
 import torch
 from torchvision import transforms
@@ -7,7 +6,17 @@ from gen.models.classification_BertNet import BertNet
 from gen.models.segmentation_LSTM import Segmentator
 from typing import Iterable
 
-from gen.config import BERT_MODEL
+
+def process_text(text, tokenizer):
+    text_tokenized = tokenizer(
+        text,
+        max_length=256,
+        truncation=True,
+        padding="max_length",
+        return_tensors="pt",
+    )["input_ids"]
+
+    return text_tokenized
 
 
 def inference(
@@ -15,7 +24,7 @@ def inference(
     texts: Iterable[str],
     dataset_path: str = "data/datasets/annotation_results_merged.csv",
     batch_size: int = 32,
-    cuda: bool = True,
+    cuda: bool = False,
     encoder_path: str = "models/BertNet_Rotation_fixed.pt",
     segmentator_model_path: str = "models/LSTM_Rotation_fixed.pt",
     labels: str = None,
@@ -43,7 +52,10 @@ def inference(
         ]
     )
 
-    tokenizer = BertTokenizer.from_pretrained(BERT_MODEL)
+    images = [image_transforms(image) for image in images]
+
+    tokenizer = BertTokenizer.from_pretrained("dccuchile/bert-base-spanish-wwm-cased")
+    texts = [process_text(text, tokenizer) for text in texts]
 
     # ===== CREATE DATASETS AND DATALOADERS =====
     encoder = BertNet(len(labels)).to(device)
