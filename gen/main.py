@@ -1,7 +1,6 @@
 import typer
 from gen.data_processing import process_pdf
 from gen.models.inference import inference
-import json
 
 def generate_results(pdf_bytes):
     images, texts = process_pdf(pdf_bytes)
